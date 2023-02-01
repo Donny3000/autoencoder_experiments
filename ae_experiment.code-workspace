@@ -15,7 +15,8 @@
 					"request": "launch",
 					"program": "main.py",
 					"console": "integratedTerminal",
-					"justMyCode": true
+					"justMyCode": true,
+					"args": ["-c", "cnn_ae_barlow", "-l", "barlow"]
 				}
 		],
 		"compounds": []

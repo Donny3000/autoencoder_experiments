@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from typing import Optional
+from .loss_funcs import BarlowTwinsLoss
 
 
 class Encoder(nn.Module):
@@ -83,31 +84,35 @@ class AutoEncoder(nn.Module):
 
 
 class LitAutoEncoder(pl.LightningModule):
-    def __init__(self, loss_fn: nn.Module = nn.MSELoss()) -> None:
+    def __init__(self, batch_size: int, loss_fn: str = "mse") -> None:
         super().__init__()
         self.encoder_ = Encoder()
         self.decoder_ = Decoder()
-        self.loss_fn_ = loss_fn
+        if loss_fn.lower() == "barlow":
+            self.loss_fn_ = BarlowTwinsLoss(batch_size)
+        else:
+            self.loss_fn_ = nn.MSELoss()
 
         # Save model's hyperparameters passed to init
         self.save_hyperparameters()
 
     def training_step(self, batch, batch_idx) -> STEP_OUTPUT:
-        x, y = batch
+        x, _ = batch
         z = self.encoder_(x)
         x_hat = self.decoder_(z)
         loss = self.loss_fn_(x_hat, x)
+        self.log("loss", loss)
         return loss
     
     def validation_step(self, batch, batch_idx) -> Optional[STEP_OUTPUT]:
-        x, y = batch
+        x, _ = batch
         z = self.encoder_(x)
         x_hat = self.decoder_(z)
         val_loss = self.loss_fn_(x_hat, x)
         self.log("val_loss", val_loss)
     
     def test_step(self, batch, batch_idx) -> Optional[STEP_OUTPUT]:
-        x, y = batch
+        x, _ = batch
         z = self.encoder_(x)
         x_hat = self.decoder_(z)
         test_loss = self.loss_fn_(x_hat, x)
